@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<h2>Панель управления</h2>
+
+<div class="user-info">
+  Вы вошли как: <span id="userName"></span> (<span id="roleName"></span>)
+  <button onclick="logout()">Выйти</button>
+</div>
+
+<div class="container" id="menu"></div>
+
+<script>
+
+// 🔥 роли в нормальном виде
+const roleNames = {
+  admin: "Администратор",
+  accountant: "Бухгалтер",
+  manager: "Руководитель",
+  employee: "Сотрудник"
+};
+
+function logout(){
+  localStorage.clear();
+  location.href = 'index.html';
+}
+
+function go(page){
+  location.href = page;
+}
+
+// 🔥 проверка и настройка UI
+window.onload = () => {
+  const login = localStorage.getItem('userLogin');
+  const role = localStorage.getItem('userRole');
+
+  if (!login || !role) {
+    location.href = 'index.html';
+    return;
+  }
+
+  document.getElementById('userName').innerText = login;
+  document.getElementById('roleName').innerText = roleNames[role] || role;
+
+  const menu = document.getElementById('menu');
+
+  // 🧠 логика кнопок по ролям
+  switch (role) {
+
+    case 'admin':
+      menu.innerHTML = `
+        <h3>Управление системой</h3>
+        <button onclick="go('users.html')">Пользователи</button>
+        <button onclick="go('employees.html')">Сотрудники</button>
+        <button onclick="go('salary.html')">Начисление зарплаты</button>
+        <button onclick="go('reports.html')">Отчёты</button>
+        <button onclick="go('positions.html')">Должности</button>
+      `;
+      break;
+
+    case 'accountant':
+      menu.innerHTML = `
+        <h3>Бухгалтерия</h3>
+        <button onclick="go('employees.html')">Сотрудники</button>
+        <button onclick="go('salary.html')">Начисление зарплаты</button>
+        <button onclick="go('reports.html')">Отчёты</button>
+      `;
+      break;
+
+    case 'manager':
+      menu.innerHTML = `
+        <h3>Руководитель</h3>
+        <button onclick="go('employees.html')">Сотрудники (только просмотр)</button>
+        <button onclick="go('reports.html')">Отчёты</button>
+      `;
+      break;
+
+    case 'employee':
+      menu.innerHTML = `
+        <h3>Сотрудник</h3>
+        <button onclick="go('employee.html')">Личный кабинет</button>
+      `;
+      break;
+
+    default:
+      menu.innerHTML = `<p>Нет доступа</p>`;
+  }
+};
+</script>
+
+</body>
+</html>

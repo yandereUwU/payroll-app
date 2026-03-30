@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<h2>Начисление зарплаты</h2>
+<button onclick="goBack()">Назад</button>
+
+<div class="container">
+
+<label>Сотрудник</label>
+<select id="employee"></select>
+
+<label>
+Отработанные дни (из 22)
+</label>
+<input id="days" placeholder="например: 15">
+
+<label>
+Премия (рубли)
+</label>
+<input id="bonus" placeholder="например: 5000">
+
+<button onclick="calc()">Рассчитать зарплату</button>
+
+<div id="notify"></div>
+<div id="result"></div>
+
+</div>
+
+<script src="auth.js"></script>
+
+
+<script>
+checkAccess(['admin', 'accountant']);
+
+const db = require('../database');
+
+function goBack() {
+  location.href = 'dashboard.html';
+}
+
+// формат денег
+function money(x){
+  return Number(x).toLocaleString('ru-RU') + ' ₽';
+}
+
+function show(msg){
+  notify.innerHTML = `<div class="msg">${msg}</div>`;
+}
+
+window.onload = async () => {
+  let data = await db.getEmployees();
+
+  employee.innerHTML = '<option value="">Выбери сотрудника</option>';
+
+  data.forEach(e => {
+    employee.innerHTML += `<option value="${e.id}">
+      ${e.full_name} (${e.position}) — ${money(e.rate)} / мес
+    </option>`;
+  });
+};
+
+async function calc(){
+  try{
+    let id = employee.value;
+    let d = Number(days.value);
+    let b = Number(bonus.value) || 0;
+
+    if(!id){
+      show("Выбери сотрудника");
+      return;
+    }
+
+    if(!d){
+      show("Введи количество дней");
+      return;
+    }
+
+    if(d > 22){
+      show("Максимум 22 дня");
+      return;
+    }
+
+    let r = await db.calculateSalary(id, d, b);
+
+    result.innerHTML = `
+      <div class="card">
+        <p>Начислено (до налога): ${money(r.total)}</p>
+        <p>Налог 13%: ${money(r.tax)}</p>
+        <h3>К выплате: ${money(r.result)}</h3>
+      </div>
+    `;
+
+  }catch(e){
+    console.error(e);
+    show("Ошибка расчёта");
+  }
+}
+</script>
+
+</body>
+</html>

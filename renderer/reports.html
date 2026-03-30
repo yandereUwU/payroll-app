@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<h2>Отчёты</h2>
+<button onclick="goBack()">Назад</button>
+
+<div class="container">
+
+<button id="loadBtn" onclick="load()">Загрузить</button>
+<button onclick="exportExcel()">Экспорт</button>
+<button onclick="clearReports()">Очистить все отчёты</button>
+
+<table id="table"></table>
+
+</div>
+
+<script src="auth.js"></script>
+
+<script>
+checkAccess(['admin', 'accountant', 'manager']);
+
+const db = require('../database');
+
+function goBack() {
+  location.href = 'dashboard.html';
+}
+
+window.onload = () => {
+  load();
+  document.getElementById('loadBtn').innerText = "Обновить";
+};
+
+async function load(){
+  let data = await db.getPayroll();
+  let table = document.getElementById('table');
+
+  table.innerHTML = `
+    <tr>
+      <th>ФИО</th><th>Должность</th>
+      <th>Дни</th><th>Премия</th>
+      <th>Налог</th><th>Итог</th>
+    </tr>
+  `;
+
+  data.forEach(r => {
+    table.innerHTML += `
+      <tr>
+        <td>${r.name}</td>
+        <td>${r.position}</td>
+        <td>${r.days}</td>
+        <td>${r.bonus}</td>
+        <td>${r.tax}</td>
+        <td>${r.total}</td>
+      </tr>
+    `;
+  });
+}
+
+function exportExcel(){
+  db.exportExcel();
+  alert("Файл сохранён");
+}
+
+async function clearReports(){
+  if(confirm("Удалить ВСЕ отчёты?")){
+    await db.clearPayroll();
+    loadReports();
+  }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<h2>Личный кабинет</h2>
+<button onclick="goBack()">Назад</button>
+
+<div class="container">
+  <h3>Мои данные</h3>
+  <div id="info"></div>
+</div>
+
+<div class="container">
+  <h3>Моя зарплата</h3>
+  <button onclick="loadSalary()">Обновить</button>
+  <table id="table"></table>
+</div>
+
+<script src="auth.js"></script>
+<script>
+
+checkAccess(['employee']);
+
+const db = require('../database');
+
+function goBack(){
+  location.href = 'dashboard.html';
+}
+
+// загрузка данных сотрудника
+async function loadInfo(){
+  const userId = localStorage.getItem('userId');
+
+  const emp = await db.getEmployeeByUserId(userId);
+
+  if(!emp){
+    info.innerHTML = "<p>Вы не привязаны к сотруднику</p>";
+    return;
+  }
+
+  info.innerHTML = `
+    <div class="card">
+      <p><b>ФИО:</b> ${emp.full_name}</p>
+      <p><b>Должность:</b> ${emp.position || '-'}</p>
+      <p><b>Оклад:</b> ${emp.rate} ₽ / месяц</p>
+    </div>
+  `;
+}
+
+// загрузка зарплаты
+async function loadSalary(){
+  const userId = localStorage.getItem('userId');
+
+  const data = await db.getMyPayroll(userId);
+
+  table.innerHTML = `
+    <tr>
+      <th>Дата</th>
+      <th>Дни</th>
+      <th>Премия (₽)</th>
+      <th>Налог (₽)</th>
+      <th>К выплате (₽)</th>
+    </tr>
+  `;
+
+  if(data.length === 0){
+    table.innerHTML += `<tr><td colspan="5">Нет данных</td></tr>`;
+    return;
+  }
+
+  data.forEach(r => {
+    table.innerHTML += `
+      <tr>
+        <td>${new Date(r.date).toLocaleDateString()}</td>
+        <td>${r.days}</td>
+        <td>${r.bonus}</td>
+        <td>${r.tax}</td>
+        <td><b>${r.total}</b></td>
+      </tr>
+    `;
+  });
+}
+
+// автозагрузка
+window.onload = async () => {
+  await loadInfo();
+  await loadSalary();
+};
+
+</script>
+
+</body>
+</html>

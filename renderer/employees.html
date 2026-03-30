@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<h2>Сотрудники</h2>
+<button onclick="goBack()">Назад</button>
+
+<div class="container">
+
+<input id="fio" placeholder="ФИО (Иванов Иван Иванович)">
+<select id="position"></select>
+<input id="newPosition" placeholder="Или новая должность">
+<input id="rate" placeholder="Ставка за день">
+
+<button onclick="addEmployee()">Добавить</button>
+
+<div id="notify"></div>
+
+</div>
+
+<div class="container">
+<h3>Список сотрудников</h3>
+<button onclick="loadEmployees()">Обновить</button>
+<table id="table"></table>
+</div>
+
+<script src="auth.js"></script>
+
+<script src="auth.js"></script>
+
+<script>
+checkAccess(['admin', 'accountant', 'manager']);
+
+const db = require('../database');
+const role = localStorage.getItem('userRole');
+
+// 🚀 запуск
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log("DOM загрузился");
+
+  await loadEmployees();
+  await loadPositions();
+});
+
+// 🔙 назад
+function goBack() {
+  location.href = 'dashboard.html';
+}
+
+// 🔔 уведомления
+function show(msg){
+  document.getElementById('notify').innerHTML =
+    `<div class="msg">${msg}</div>`;
+}
+
+// ✅ проверка ФИО
+function validateFIO(fio){
+  return /^[А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+$/.test(fio);
+}
+
+// ======================
+// 📌 ДОЛЖНОСТИ
+// ======================
+
+async function loadPositions(){
+  try {
+    const data = await db.getPositions();
+
+    const select = document.getElementById('position');
+
+    if (!data || data.length === 0) {
+      select.innerHTML = '<option value="">Нет должностей</option>';
+      return;
+    }
+
+    select.innerHTML = '<option value="">Выбрать должность</option>';
+
+    data.forEach(p => {
+      select.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+    });
+
+  } catch (e) {
+    console.error("Ошибка загрузки должностей:", e);
+  }
+}
+
+// ======================
+// 👤 СОТРУДНИКИ
+// ======================
+
+async function addEmployee(){
+  const fio = document.getElementById('fio').value.trim();
+  const posId = document.getElementById('position').value;
+  const newPos = document.getElementById('newPosition').value.trim();
+  const rate = document.getElementById('rate').value;
+
+  if(!validateFIO(fio)){
+    show("ФИО должно быть: Иванов Иван Иванович");
+    return;
+  }
+
+  if(!posId && !newPos){
+    show("Выбери должность или введи новую");
+    return;
+  }
+
+  try{
+    if(newPos){
+      await db.addPosition(newPos);
+      await db.addEmployee(fio, newPos, rate);
+    } else {
+      const positions = await db.getPositions();
+      const pos = positions.find(p => p.id == posId);
+
+      await db.addEmployee(fio, pos.name, rate);
+    }
+
+    show("Сотрудник добавлен");
+
+  }catch(e){
+    console.error(e);
+    show("Ошибка добавления");
+  }
+
+  await loadEmployees();
+  await loadPositions();
+}
+
+// загрузка сотрудников
+async function loadEmployees(){
+  const data = await db.getEmployees();
+
+  const table = document.getElementById('table');
+
+  table.innerHTML = `
+    <tr>
+      <th>ID</th>
+      <th>ФИО</th>
+      <th>Должность</th>
+      <th>Ставка</th>
+      <th></th>
+    </tr>
+  `;
+
+  data.forEach(e => {
+    table.innerHTML += `
+      <tr>
+        <td>${e.id}</td>
+        <td>${e.full_name}</td>
+        <td>${e.position || '-'}</td>
+        <td>${e.rate}</td>
+        <td>
+          ${
+            role !== 'manager'
+              ? `<button onclick="deleteEmp(${e.id})">Удалить</button>`
+              : ''
+          }
+        </td>
+      </tr>
+    `;
+  });
+}
+
+// удаление
+async function deleteEmp(id){
+  if (role === 'manager') {
+    show("Нет доступа");
+    return;
+  }
+
+  await db.deleteEmployee(id);
+  show("Сотрудник удалён");
+  loadEmployees();
+}
+
+</script>
+
+</body>
+</html>

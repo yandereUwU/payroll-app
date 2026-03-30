@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="styles.css">
+<style>
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.login-box {
+  width: 300px;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px #ccc;
+  text-align: center;
+}
+
+input {
+  width: 100%;
+  margin: 10px 0;
+  padding: 8px;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+}
+</style>
+</head>
+
+<body class="login-page">
+    
+<div class="login-box">
+  <h2>Вход в систему</h2>
+
+  <input id="login" placeholder="Логин">
+  <input id="password" type="password" placeholder="Пароль">
+
+  <button id="btnLogin">Войти</button>
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
