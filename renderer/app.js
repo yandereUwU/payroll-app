@@ -20,18 +20,19 @@ async function loginUser() {
     const user = await db.login(login, password);
     
     if (user) {
-      // 🔥 теперь localStorage
       localStorage.setItem('userId', user.id);
       localStorage.setItem('userLogin', user.login);
       localStorage.setItem('userRole', user.role);
       
-     switch (user.role) {
+      switch (user.role) {
         case 'admin':
         case 'accountant':
         case 'manager':
         case 'employee':
           location.href = 'dashboard.html';
-        break;
+          break;
+        default:
+          alert('Неизвестная роль');
       }
     } else {
       alert('Неверный логин или пароль');

@@ -5,91 +5,136 @@
 </head>
 <body>
 
-<h2>Личный кабинет</h2>
+<h2>Личный кабинет сотрудника</h2>
 <button onclick="goBack()">Назад</button>
 
 <div class="container">
   <h3>Мои данные</h3>
-  <div id="info"></div>
+  <div id="employeeInfo"></div>
 </div>
 
 <div class="container">
-  <h3>Моя зарплата</h3>
-  <button onclick="loadSalary()">Обновить</button>
-  <table id="table"></table>
+  <h3>Мои начисления</h3>
+  <label>Период</label>
+  <select id="yearSelect"></select>
+  <select id="monthSelect"></select>
+  <button onclick="loadMyPayroll()">Показать</button>
+  
+  <table id="payrollTable">
+    <thead>
+      <tr>
+        <th>Дата</th>
+        <th>Период</th>
+        <th>Дни</th>
+        <th>Премия</th>
+        <th>Налог</th>
+        <th>К выплате</th>
+      </tr>
+    </thead>
+    <tbody id="payrollBody"></tbody>
+  </table>
 </div>
 
 <script src="auth.js"></script>
 <script>
+const db = require('../database');
 
 checkAccess(['employee']);
 
-const db = require('../database');
-
-function goBack(){
+function goBack() {
   location.href = 'dashboard.html';
 }
 
-// загрузка данных сотрудника
-async function loadInfo(){
+// Заполнение выбора периода
+function initPeriodSelects() {
+  const yearSelect = document.getElementById('yearSelect');
+  const currentYear = new Date().getFullYear();
+  for (let y = currentYear - 2; y <= currentYear; y++) {
+    yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+  }
+  yearSelect.value = currentYear;
+  
+  const monthSelect = document.getElementById('monthSelect');
+  const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+  for (let i = 0; i < months.length; i++) {
+    monthSelect.innerHTML += `<option value="${i+1}">${months[i]}</option>`;
+  }
+  monthSelect.value = new Date().getMonth() + 1;
+}
+
+// Загрузка данных сотрудника
+async function loadEmployeeInfo() {
   const userId = localStorage.getItem('userId');
-
   const emp = await db.getEmployeeByUserId(userId);
-
-  if(!emp){
-    info.innerHTML = "<p>Вы не привязаны к сотруднику</p>";
+  
+  const infoDiv = document.getElementById('employeeInfo');
+  if (!emp) {
+    infoDiv.innerHTML = '<p>Вы не привязаны к сотруднику</p>';
     return;
   }
-
-  info.innerHTML = `
+  
+  infoDiv.innerHTML = `
     <div class="card">
       <p><b>ФИО:</b> ${emp.full_name}</p>
       <p><b>Должность:</b> ${emp.position || '-'}</p>
-      <p><b>Оклад:</b> ${emp.rate} ₽ / месяц</p>
+      <p><b>Ставка:</b> ${emp.rate} ₽ / месяц</p>
     </div>
   `;
 }
 
-// загрузка зарплаты
-async function loadSalary(){
+// Загрузка начислений сотрудника
+async function loadMyPayroll() {
   const userId = localStorage.getItem('userId');
-
-  const data = await db.getMyPayroll(userId);
-
-  table.innerHTML = `
-    <tr>
-      <th>Дата</th>
-      <th>Дни</th>
-      <th>Премия (₽)</th>
-      <th>Налог (₽)</th>
-      <th>К выплате (₽)</th>
-    </tr>
-  `;
-
-  if(data.length === 0){
-    table.innerHTML += `<tr><td colspan="5">Нет данных</td></tr>`;
+  const year = document.getElementById('yearSelect').value;
+  const month = document.getElementById('monthSelect').value;
+  
+  const payrollData = await db.getMyPayroll(userId);
+  
+  // Фильтрация по году и месяцу
+  const filtered = payrollData.filter(p => {
+    if (!p.year || !p.month) return false;
+    return p.year == year && p.month == month;
+  });
+  
+  const tbody = document.getElementById('payrollBody');
+  tbody.innerHTML = '';
+  
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6">Нет начислений за выбранный период</td></tr>';
     return;
   }
-
-  data.forEach(r => {
-    table.innerHTML += `
+  
+  filtered.forEach(p => {
+    const period = `${p.year}-${String(p.month).padStart(2,'0')}`;
+    tbody.innerHTML += `
       <tr>
-        <td>${new Date(r.date).toLocaleDateString()}</td>
-        <td>${r.days}</td>
-        <td>${r.bonus}</td>
-        <td>${r.tax}</td>
-        <td><b>${r.total}</b></td>
+        <td>${new Date(p.date).toLocaleDateString()}</td>
+        <td>${period}</td>
+        <td>${p.days}</td>
+        <td>${p.bonus}</td>
+        <td>${p.tax}</td>
+        <td><b>${p.total}</b></td>
       </tr>
     `;
   });
 }
 
-// автозагрузка
-window.onload = async () => {
-  await loadInfo();
-  await loadSalary();
-};
+// Обновление главного меню для ролей (добавить ссылку на manager.html)
+function updateDashboardLink() {
+  const role = localStorage.getItem('userRole');
+  if (role === 'manager') {
+    // В dashboard.html уже есть кнопка "Отчёты", но она ведёт на reports.html
+    // Для руководителя лучше вести на manager.html
+    // Это можно поправить в dashboard.html отдельно
+  }
+}
 
+window.onload = async () => {
+  initPeriodSelects();
+  await loadEmployeeInfo();
+  await loadMyPayroll();
+};
 </script>
 
 </body>

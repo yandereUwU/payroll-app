@@ -63,7 +63,7 @@ async function loadUsers() {
 async function addUser() {
   const login = document.getElementById('login').value;
   const password = document.getElementById('password').value;
-  const role = document.getElementById('role').value;
+  const role = document.getElementById('role').value; // admin, accountant, manager, employee
 
   if (!login || !password) {
     alert('Заполни поля');
@@ -71,8 +71,10 @@ async function addUser() {
   }
 
   try {
-    await db.createUser(login, password, role); // ✅ исправлено
+    await db.createUser(login, password, role); // передаём имя роли (работает)
     loadUsers();
+    document.getElementById('login').value = '';
+    document.getElementById('password').value = '';
   } catch(e) {
     alert('Ошибка: возможно логин уже существует');
   }

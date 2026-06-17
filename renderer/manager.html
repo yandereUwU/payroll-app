@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<h2>Панель руководителя</h2>
+<button onclick="goBack()">Назад</button>
+
+<div class="container">
+  <h3>Фильтры</h3>
+  <label>Период (год и месяц)</label>
+  <select id="yearSelect"></select>
+  <select id="monthSelect"></select>
+  
+  <label>Сотрудник</label>
+  <select id="employeeFilter">
+    <option value="all">Все сотрудники</option>
+  </select>
+  
+  <button onclick="loadPayroll()">Применить фильтр</button>
+  <button onclick="closePeriod()">Закрыть период</button>
+</div>
+
+<div class="container">
+  <h3>Начисления</h3>
+  <table id="payrollTable">
+    <thead>
+      <tr>
+        <th>ФИО</th>
+        <th>Должность</th>
+        <th>Период</th>
+        <th>Дни</th>
+        <th>Премия</th>
+        <th>Налог</th>
+        <th>К выплате</th>
+      </tr>
+    </thead>
+    <tbody id="payrollBody"></tbody>
+  </table>
+</div>
+
+<script src="auth.js"></script>
+<script>
+const db = require('../database');
+
+// Проверка доступа
+checkAccess(['manager']);
+
+function goBack() {
+  location.href = 'dashboard.html';
+}
+
+// Заполнение выбора года и месяца
+function initPeriodSelects() {
+  const yearSelect = document.getElementById('yearSelect');
+  const currentYear = new Date().getFullYear();
+  for (let y = currentYear - 2; y <= currentYear; y++) {
+    yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+  }
+  yearSelect.value = currentYear;
+  
+  const monthSelect = document.getElementById('monthSelect');
+  const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+  for (let i = 0; i < months.length; i++) {
+    monthSelect.innerHTML += `<option value="${i+1}">${months[i]}</option>`;
+  }
+  monthSelect.value = new Date().getMonth() + 1;
+}
+
+// Загрузка списка сотрудников для фильтра
+async function loadEmployeeFilter() {
+  const employees = await db.getEmployees();
+  const filter = document.getElementById('employeeFilter');
+  employees.forEach(emp => {
+    filter.innerHTML += `<option value="${emp.id}">${emp.full_name}</option>`;
+  });
+}
+
+// Загрузка начислений
+async function loadPayroll() {
+  const year = document.getElementById('yearSelect').value;
+  const month = document.getElementById('monthSelect').value;
+  const employeeId = document.getElementById('employeeFilter').value;
+  
+  let payrollData;
+  if (employeeId === 'all') {
+    payrollData = await db.getPayroll();
+  } else {
+    payrollData = await db.getPayroll(parseInt(employeeId));
+  }
+  
+  // Фильтрация по году и месяцу на клиенте
+  const filtered = payrollData.filter(p => {
+    if (!p.date) return false;
+    const date = new Date(p.date);
+    return date.getFullYear() == year && (date.getMonth() + 1) == month;
+  });
+  
+  const tbody = document.getElementById('payrollBody');
+  tbody.innerHTML = '';
+  
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8">Нет данных</td></tr>';
+    return;
+  }
+  
+  filtered.forEach(p => {
+    const period = p.year && p.month ? `${p.year}-${String(p.month).padStart(2,'0')}` : '-';
+    tbody.innerHTML += `
+      <tr>
+        <td>${p.name || '-'}</td>
+        <td>${p.position || '-'}</td>
+        <td>${period}</td>
+        <td>${p.days}</td>
+        <td>${p.bonus}</td>
+        <td>${p.tax}</td>
+        <td><b>${p.total}</b></td>
+      </tr>
+    `;
+  });
+}
+
+// Закрытие периода
+async function closePeriod() {
+  const year = document.getElementById('yearSelect').value;
+  const month = document.getElementById('monthSelect').value;
+  
+  if (!confirm(`Закрыть период ${year}-${month}? После закрытия изменения будут невозможны.`)) {
+    return;
+  }
+  
+  try {
+    const periods = await db.getPayrollPeriods();
+    const period = periods.find(p => p.year == year && p.month == month);
+    
+    if (!period) {
+      alert('Период не найден');
+      return;
+    }
+    
+    if (period.is_closed) {
+      alert('Период уже закрыт');
+      return;
+    }
+    
+    await db.closePeriod(period.id);
+    alert(`Период ${year}-${month} закрыт`);
+    loadPayroll();
+  } catch(e) {
+    console.error(e);
+    alert('Ошибка закрытия периода');
+  }
+}
+
+async function closePeriod() {
+  const year = document.getElementById('yearSelect').value;
+  const month = document.getElementById('monthSelect').value;
+  
+  if (!confirm(`Закрыть период ${year}-${month}? После закрытия изменения будут невозможны.`)) {
+    return;
+  }
+  
+  try {
+    const periods = await db.getPayrollPeriods();
+    const period = periods.find(p => p.year == year && p.month == month);
+    
+    if (!period) {
+      alert('Период не найден');
+      return;
+    }
+    
+    if (period.is_closed) {
+      alert('Период уже закрыт');
+      return;
+    }
+    
+    await db.closePeriod(period.id);
+    alert(`Период ${year}-${month} закрыт`);
+    loadPayroll(); // обновить таблицу
+  } catch(e) {
+    console.error(e);
+    alert('Ошибка закрытия периода');
+  }
+}
+
+// Инициализация
+window.onload = async () => {
+  initPeriodSelects();
+  await loadEmployeeFilter();
+  await loadPayroll();
+};
+</script>
+
+</body>
+</html>
