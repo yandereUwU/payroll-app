@@ -1,36 +1,16 @@
-// ============================================================
-// ФАЙЛ: main.js
-// СИСТЕМА РАСЧЁТА ЗАРАБОТНОЙ ПЛАТЫ (ВСЁ В ОДНОМ ФАЙЛЕ)
-// Electron + SQLite + ExcelJS
-// ============================================================
-
-// ============================================
-// 1. ПОДКЛЮЧЕНИЕ БИБЛИОТЕК
-// ============================================
-
 const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 const ExcelJS = require('exceljs');
 
-// ============================================
-// 2. ПОДКЛЮЧЕНИЕ К БАЗЕ ДАННЫХ
-// ============================================
-
 const db = new sqlite3.Database('./data.db');
 
-// ============================================
-// 3. СОЗДАНИЕ ТАБЛИЦ
-// ============================================
-
 db.serialize(() => {
-  // Роли
   db.run(`CREATE TABLE IF NOT EXISTS roles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL
   )`);
 
-  // Пользователи
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     login TEXT UNIQUE NOT NULL,
@@ -39,13 +19,11 @@ db.serialize(() => {
     FOREIGN KEY(role_id) REFERENCES roles(id)
   )`);
 
-  // Должности
   db.run(`CREATE TABLE IF NOT EXISTS positions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL
   )`);
 
-  // Сотрудники
   db.run(`CREATE TABLE IF NOT EXISTS employees (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     full_name TEXT UNIQUE NOT NULL,
@@ -56,7 +34,6 @@ db.serialize(() => {
     FOREIGN KEY(user_id) REFERENCES users(id)
   )`);
 
-  // Начисления
   db.run(`CREATE TABLE IF NOT EXISTS payroll (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     employee_id INTEGER NOT NULL,
@@ -68,7 +45,6 @@ db.serialize(() => {
     FOREIGN KEY(employee_id) REFERENCES employees(id)
   )`);
 
-  // Периоды начисления
   db.run(`CREATE TABLE IF NOT EXISTS payroll_periods (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     year INTEGER NOT NULL,
@@ -80,14 +56,12 @@ db.serialize(() => {
     UNIQUE(year, month)
   )`);
 
-  // Системные настройки
   db.run(`CREATE TABLE IF NOT EXISTS settings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     key TEXT UNIQUE NOT NULL,
     value TEXT NOT NULL
   )`);
 
-  // Журнал аудита
   db.run(`CREATE TABLE IF NOT EXISTS audit_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER,
@@ -100,14 +74,12 @@ db.serialize(() => {
     FOREIGN KEY(user_id) REFERENCES users(id)
   )`);
 
-  // Начальные данные
   db.run(`INSERT OR IGNORE INTO roles (name) VALUES 
     ('admin'), ('accountant'), ('manager'), ('employee')`);
 
   db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES 
     ('tax_rate', '0.13'), ('work_days_per_month', '22')`);
 
-  // Пользователи по умолчанию
   db.get(`SELECT id FROM roles WHERE name = 'admin'`, (err, role) => {
     if (role) db.run(`INSERT OR IGNORE INTO users (login, password, role_id) 
       VALUES ('admin', 'admin123', ?)`, [role.id]);
@@ -129,11 +101,6 @@ db.serialize(() => {
   });
 });
 
-// ============================================
-// 4. ФУНКЦИИ РАБОТЫ С БАЗОЙ ДАННЫХ
-// ============================================
-
-// --- АВТОРИЗАЦИЯ ---
 function login(login, password) {
   return new Promise((resolve, reject) => {
     db.get(`
@@ -147,7 +114,6 @@ function login(login, password) {
   });
 }
 
-// --- ПОЛУЧЕНИЕ СПИСКА СОТРУДНИКОВ ---
 function getEmployees() {
   return new Promise((resolve, reject) => {
     db.all(`
@@ -161,7 +127,6 @@ function getEmployees() {
   });
 }
 
-// --- ДОБАВЛЕНИЕ СОТРУДНИКА ---
 function addEmployee(name, positionName, rate) {
   return new Promise((resolve, reject) => {
     db.run(`INSERT INTO employees (full_name, position_id, rate)
@@ -173,7 +138,6 @@ function addEmployee(name, positionName, rate) {
   });
 }
 
-// --- УДАЛЕНИЕ СОТРУДНИКА ---
 function deleteEmployee(id) {
   return new Promise((resolve, reject) => {
     db.run(`DELETE FROM employees WHERE id = ?`, [id], function(err) {
@@ -183,7 +147,6 @@ function deleteEmployee(id) {
   });
 }
 
-// --- ПОЛУЧЕНИЕ СПИСКА ДОЛЖНОСТЕЙ ---
 function getPositions() {
   return new Promise((resolve, reject) => {
     db.all(`SELECT * FROM positions`, [], (err, rows) => {
@@ -193,7 +156,6 @@ function getPositions() {
   });
 }
 
-// --- ДОБАВЛЕНИЕ ДОЛЖНОСТИ ---
 function addPosition(name) {
   return new Promise((resolve, reject) => {
     db.run(`INSERT INTO positions (name) VALUES (?)`, [name], function(err) {
@@ -203,7 +165,6 @@ function addPosition(name) {
   });
 }
 
-// --- УДАЛЕНИЕ ДОЛЖНОСТИ ---
 function deletePosition(id) {
   return new Promise((resolve, reject) => {
     db.run(`DELETE FROM positions WHERE id = ?`, [id], function(err) {
@@ -213,7 +174,6 @@ function deletePosition(id) {
   });
 }
 
-// --- РАСЧЁТ ЗАРПЛАТЫ ---
 function calculateSalary(employee_id, days, bonus) {
   return new Promise(async (resolve, reject) => {
     try {
@@ -246,7 +206,6 @@ function calculateSalary(employee_id, days, bonus) {
   });
 }
 
-// --- ПОЛУЧЕНИЕ ОТЧЁТОВ ---
 function getPayroll() {
   return new Promise((resolve, reject) => {
     db.all(`
@@ -263,7 +222,6 @@ function getPayroll() {
   });
 }
 
-// --- ЭКСПОРТ В EXCEL ---
 function exportExcel() {
   return new Promise(async (resolve, reject) => {
     try {
@@ -299,7 +257,6 @@ function exportExcel() {
   });
 }
 
-// --- ОЧИСТКА ОТЧЁТОВ ---
 function clearPayroll() {
   return new Promise((resolve, reject) => {
     db.run(`DELETE FROM payroll`, function(err) {
@@ -309,7 +266,6 @@ function clearPayroll() {
   });
 }
 
-// --- ПОЛУЧЕНИЕ СОТРУДНИКА ПО ID ПОЛЬЗОВАТЕЛЯ ---
 function getEmployeeByUserId(userId) {
   return new Promise((resolve, reject) => {
     db.get(`
@@ -324,7 +280,6 @@ function getEmployeeByUserId(userId) {
   });
 }
 
-// --- ПОЛУЧЕНИЕ НАЧИСЛЕНИЙ ТЕКУЩЕГО СОТРУДНИКА ---
 function getMyPayroll(userId) {
   return new Promise((resolve, reject) => {
     db.all(`
@@ -342,7 +297,6 @@ function getMyPayroll(userId) {
   });
 }
 
-// --- ПОЛУЧЕНИЕ ПЕРИОДОВ ---
 function getPayrollPeriods() {
   return new Promise((resolve, reject) => {
     db.all(`SELECT * FROM payroll_periods ORDER BY year DESC, month DESC`, [], (err, rows) => {
@@ -352,7 +306,6 @@ function getPayrollPeriods() {
   });
 }
 
-// --- ЗАКРЫТИЕ ПЕРИОДА ---
 function closePeriod(periodId) {
   return new Promise((resolve, reject) => {
     db.run(
@@ -366,7 +319,6 @@ function closePeriod(periodId) {
   });
 }
 
-// --- ПОЛУЧЕНИЕ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ ---
 function getAllUsers() {
   return new Promise((resolve, reject) => {
     db.all(`
@@ -380,7 +332,6 @@ function getAllUsers() {
   });
 }
 
-// --- СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ ---
 function createUser(login, password, roleName) {
   return new Promise((resolve, reject) => {
     db.get(`SELECT id FROM roles WHERE name = ?`, [roleName], (err, role) => {
@@ -400,7 +351,6 @@ function createUser(login, password, roleName) {
   });
 }
 
-// --- УДАЛЕНИЕ ПОЛЬЗОВАТЕЛЯ ---
 function deleteUser(userId) {
   return new Promise((resolve, reject) => {
     db.run(`UPDATE employees SET user_id = NULL WHERE user_id = ?`, [userId], () => {
@@ -411,10 +361,6 @@ function deleteUser(userId) {
     });
   });
 }
-
-// ============================================
-// 5. ЗАПУСК ELECTRON
-// ============================================
 
 let mainWindow;
 
@@ -440,10 +386,6 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
-
-// ============================================
-// 6. ЭКСПОРТ ФУНКЦИЙ ДЛЯ ИСПОЛЬЗОВАНИЯ В РЕНДЕРЕРЕ
-// ============================================
 
 module.exports = {
   login,

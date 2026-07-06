@@ -1,49 +1,491 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-<link rel="stylesheet" href="styles.css">
-<style>
-body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  margin: 0;
-}
+    <meta charset="UTF-8">
+    <title>Система расчёта зарплаты</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background: #f0f2f5; padding: 20px; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
+        .app { max-width: 1100px; width: 100%; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); padding: 28px 32px; }
+        h1 { font-size: 22px; font-weight: 600; color: #1a2634; }
+        .sub-header { color: #6b7a8a; font-size: 14px; border-bottom: 1px solid #e9edf2; padding-bottom: 14px; margin-bottom: 18px; }
+        .header { background: #f8faff; padding: 10px 18px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e2e8f0; margin-bottom: 18px; }
+        .header .user { font-size: 14px; color: #2d3748; }
+        .header .user strong { color: #1a2634; }
+        .badge { background: #e2e8f0; color: #2d3748; padding: 2px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .btn-outline { background: transparent; border: 1px solid #d0d8e0; padding: 6px 18px; border-radius: 8px; cursor: pointer; color: #2d3748; font-size: 13px; }
+        .btn-outline:hover { background: #edf2f7; }
+        .tabs { display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 2px solid #e9edf2; padding-bottom: 12px; margin-bottom: 22px; }
+        .tab-btn { padding: 8px 22px; border: none; border-radius: 8px; background: #f1f4f9; color: #2d3748; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .tab-btn:hover { background: #e2e8f0; }
+        .tab-btn.active { background: #1a2634; color: #fff; }
+        .page { display: none; }
+        .page.active { display: block; }
+        h2 { font-size: 18px; font-weight: 600; color: #1a2634; margin-bottom: 14px; }
+        .card { background: #fafcff; border: 1px solid #e9edf2; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; }
+        .card-title { font-size: 15px; font-weight: 600; color: #1a2634; margin-bottom: 10px; }
+        .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+        .row label { font-size: 14px; color: #2d3748; min-width: 110px; }
+        .row input, .row select { padding: 8px 14px; border: 1px solid #d0d8e0; border-radius: 8px; font-size: 14px; flex: 1; min-width: 180px; background: #fff; color: #1a2634; }
+        .row input:focus, .row select:focus { outline: none; border-color: #6b7a8a; }
+        .hint { font-size: 12px; color: #8a9aa8; display: block; margin-top: 2px; }
+        .btn { padding: 8px 22px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; }
+        .btn-primary { background: #1a2634; color: #fff; }
+        .btn-primary:hover { background: #2d3b4a; }
+        .btn-success { background: #2d6a4f; color: #fff; }
+        .btn-success:hover { background: #1e4f3a; }
+        .btn-danger { background: #c0392b; color: #fff; }
+        .btn-danger:hover { background: #a93226; }
+        .btn-ghost { background: transparent; border: 1px solid #d0d8e0; color: #2d3748; }
+        .btn-ghost:hover { background: #edf2f7; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { background: #f1f4f9; color: #1a2634; padding: 10px 14px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 10px 14px; border-bottom: 1px solid #e9edf2; color: #2d3748; }
+        tr:hover { background: #f8faff; }
+        .result-box { background: #f1f4f9; border-left: 4px solid #1a2634; padding: 14px 20px; border-radius: 8px; margin-top: 12px; }
+        .result-box p { margin: 4px 0; font-size: 14px; color: #2d3748; }
+        .result-box .total { font-size: 20px; font-weight: 700; color: #1a2634; }
+        .flex { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+        @media (max-width: 640px) { .app { padding: 16px; } .row { flex-direction: column; align-items: stretch; } .row label { min-width: auto; } .header { flex-direction: column; gap: 10px; text-align: center; } }
 
-.login-box {
-  width: 300px;
-  padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 0 10px #ccc;
-  text-align: center;
-}
-
-input {
-  width: 100%;
-  margin: 10px 0;
-  padding: 8px;
-}
-
-button {
-  width: 100%;
-  padding: 10px;
-}
-</style>
+        .auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 999; }
+        .auth-overlay.hidden { display: none; }
+        .auth-box { background: #ffffff; border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,0.15); padding: 40px 44px; width: 100%; max-width: 380px; }
+        .auth-box h2 { font-size: 22px; color: #1a2634; text-align: center; margin-bottom: 4px; }
+        .auth-box .sub { text-align: center; color: #6b7a8a; font-size: 14px; margin-bottom: 24px; }
+        .auth-box .field { margin-bottom: 14px; }
+        .auth-box .field label { display: block; font-size: 14px; color: #2d3748; margin-bottom: 4px; }
+        .auth-box .field input { width: 100%; padding: 10px 14px; border: 1px solid #d0d8e0; border-radius: 8px; font-size: 14px; background: #fff; color: #1a2634; }
+        .auth-box .field input:focus { outline: none; border-color: #6b7a8a; }
+        .auth-box .btn { width: 100%; padding: 10px; background: #1a2634; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; }
+        .auth-box .btn:hover { background: #2d3b4a; }
+        .auth-error { color: #c0392b; font-size: 13px; text-align: center; margin-top: 10px; display: none; }
+        .auth-error.show { display: block; }
+    </style>
 </head>
+<body>
 
-<body class="login-page">
-    
-<div class="login-box">
-  <h2>Вход в систему</h2>
-
-  <input id="login" placeholder="Логин">
-  <input id="password" type="password" placeholder="Пароль">
-
-  <button id="btnLogin">Войти</button>
+<div class="auth-overlay" id="authOverlay">
+    <div class="auth-box">
+        <h2>Вход в систему</h2>
+        <p class="sub">Система расчёта заработной платы</p>
+        <div class="field">
+            <label>Логин</label>
+            <input type="text" id="loginInput" placeholder="Введите логин" value="admin">
+        </div>
+        <div class="field">
+            <label>Пароль</label>
+            <input type="password" id="passInput" placeholder="Введите пароль" value="admin123">
+        </div>
+        <button class="btn" onclick="loginUser()">Войти</button>
+        <div class="auth-error" id="authError">Неверный логин или пароль</div>
+    </div>
 </div>
 
-<script src="app.js"></script>
+<div class="app" id="app">
+    <h1>Система расчёта заработной платы</h1>
+    <div class="sub-header">Кроссплатформенное настольное приложение · Electron + JavaScript + SQLite</div>
 
+    <div class="header">
+        <div class="user"><strong id="userName">Администратор</strong> <span class="badge" id="userRole">admin</span></div>
+        <button class="btn-outline" onclick="logoutUser()">Выйти</button>
+    </div>
+
+    <div class="tabs" id="tabsContainer">
+        <button class="tab-btn active" data-page="employees">Сотрудники</button>
+        <button class="tab-btn" data-page="salary">Начисление зарплаты</button>
+        <button class="tab-btn" data-page="reports">Отчёты</button>
+        <button class="tab-btn" data-page="users">Пользователи</button>
+        <button class="tab-btn" data-page="positions">Должности</button>
+        <button class="tab-btn" data-page="employee">Личный кабинет</button>
+        <button class="tab-btn" data-page="manager">Руководитель</button>
+    </div>
+
+    <div id="page-employees" class="page active">
+        <h2>Сотрудники</h2>
+        <div class="card">
+            <div class="card-title">Добавить сотрудника</div>
+            <div class="row"><label>ФИО</label><input type="text" id="empName" placeholder="Иванов Иван Иванович"></div>
+            <div class="row"><label>Должность</label><select id="empPosition"><option>Преподаватель</option><option>Бухгалтер</option><option>Руководитель</option><option>Инженер</option></select></div>
+            <div class="row"><label>Ставка (руб.)</label><input type="number" id="empRate" placeholder="5000"></div>
+            <button class="btn btn-success" onclick="addEmployee()">Добавить</button>
+        </div>
+        <div class="card">
+            <div class="card-title">Список сотрудников</div>
+            <table>
+                <thead><tr><th>ID</th><th>ФИО</th><th>Должность</th><th>Ставка</th><th></th></tr></thead>
+                <tbody id="employeesTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="page-salary" class="page">
+        <h2>Начисление зарплаты</h2>
+        <div class="card">
+            <div class="row"><label>Сотрудник</label><select id="salaryEmp"></select></div>
+            <div class="row"><label>Отработанные дни</label><input type="number" id="salaryDays" placeholder="20"></div>
+            <div class="row"><label>Премия (руб.)</label><input type="number" id="salaryBonus" placeholder="5000"></div>
+            <button class="btn btn-primary" onclick="calcSalary()">Рассчитать</button>
+            <div class="result-box" id="salaryResult">
+                <p><strong>Начислено (до налога):</strong> 0 руб.</p>
+                <p><strong>Налог 13%:</strong> 0 руб.</p>
+                <p class="total">К выплате: 0 руб.</p>
+            </div>
+            <button class="btn btn-success" style="margin-top:12px;" onclick="saveSalary()">Сохранить</button>
+        </div>
+        <div class="card">
+            <div class="card-title">История начислений</div>
+            <table>
+                <thead><tr><th>Дата</th><th>Сотрудник</th><th>Дни</th><th>Премия</th><th>Налог</th><th>Итого</th></tr></thead>
+                <tbody id="payrollHistory"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="page-reports" class="page">
+        <h2>Отчёты</h2>
+        <div class="card">
+            <div class="row"><label>Период</label><select><option>Июль 2026</option><option>Июнь 2026</option></select></div>
+            <div class="row"><label>Сотрудник</label><select id="reportEmpFilter"><option>Все</option></select></div>
+            <button class="btn btn-primary" onclick="loadReports()">Показать</button>
+            <button class="btn btn-success" onclick="alert('Экспорт в Excel выполнен')">Экспорт в Excel</button>
+        </div>
+        <div class="card">
+            <table>
+                <thead><tr><th>ФИО</th><th>Должность</th><th>Дни</th><th>Премия</th><th>Налог</th><th>Итого</th></tr></thead>
+                <tbody id="reportsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="page-users" class="page">
+        <h2>Пользователи</h2>
+        <div class="card">
+            <div class="row"><label>Логин</label><input type="text" id="userLogin" placeholder="user"></div>
+            <div class="row"><label>Пароль</label><input type="text" id="userPass" placeholder="password"></div>
+            <div class="row"><label>Роль</label><select id="userRoleSelect"><option>Администратор</option><option>Бухгалтер</option><option>Руководитель</option><option>Сотрудник</option></select></div>
+            <button class="btn btn-success" onclick="addUser()">Добавить</button>
+        </div>
+        <div class="card">
+            <table>
+                <thead><tr><th>ID</th><th>Логин</th><th>Роль</th><th></th></tr></thead>
+                <tbody id="usersTableBody">
+                    <tr><td>1</td><td>admin</td><td>Администратор</td><td><button class="btn btn-danger" onclick="deleteUser(this)">Удалить</button></td></tr>
+                    <tr><td>2</td><td>buhgal</td><td>Бухгалтер</td><td><button class="btn btn-danger" onclick="deleteUser(this)">Удалить</button></td></tr>
+                    <tr><td>3</td><td>manager</td><td>Руководитель</td><td><button class="btn btn-danger" onclick="deleteUser(this)">Удалить</button></td></tr>
+                    <tr><td>4</td><td>sotrud</td><td>Сотрудник</td><td><button class="btn btn-danger" onclick="deleteUser(this)">Удалить</button></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="page-positions" class="page">
+        <h2>Должности</h2>
+        <div class="card">
+            <div class="row"><label>Название</label><input type="text" id="posName" placeholder="Преподаватель"></div>
+            <button class="btn btn-success" onclick="addPosition()">Добавить</button>
+        </div>
+        <div class="card">
+            <table>
+                <thead><tr><th>ID</th><th>Название</th><th></th></tr></thead>
+                <tbody id="positionsTableBody">
+                    <tr><td>1</td><td>Преподаватель</td><td><button class="btn btn-danger" onclick="deletePos(this)">Удалить</button></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="page-employee" class="page">
+        <h2>Личный кабинет</h2>
+        <div class="card">
+            <div class="card-title">Мои данные</div>
+            <p><strong>ФИО:</strong> <span id="myName">—</span></p>
+            <p><strong>Должность:</strong> <span id="myPosition">—</span></p>
+            <p><strong>Ставка:</strong> <span id="myRate">—</span> руб.</p>
+        </div>
+        <div class="card">
+            <div class="card-title">Мои начисления</div>
+            <table>
+                <thead><tr><th>Дата</th><th>Дни</th><th>Премия</th><th>Налог</th><th>Итого</th></tr></thead>
+                <tbody id="myPayrollBody"></tbody>
+            </table>
+            <button class="btn btn-ghost" style="margin-top:10px;" onclick="loadMyPayroll()">Обновить</button>
+        </div>
+    </div>
+
+    <div id="page-manager" class="page">
+        <h2>Панель руководителя</h2>
+        <div class="card">
+            <div class="row"><label>Период</label><select><option>Июль 2026</option><option>Июнь 2026</option></select></div>
+            <div class="row"><label>Сотрудник</label><select id="managerEmpFilter"><option>Все</option></select></div>
+            <button class="btn btn-primary" onclick="loadManagerReport()">Применить</button>
+            <button class="btn btn-danger" onclick="alert('Период закрыт. Изменения невозможны.')">Закрыть период</button>
+        </div>
+        <div class="card">
+            <table>
+                <thead><tr><th>ФИО</th><th>Должность</th><th>Дни</th><th>Премия</th><th>Налог</th><th>Итого</th></tr></thead>
+                <tbody id="managerTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const DB = {
+        users: [
+            { id: 1, login: 'admin', password: 'admin123', role: 'Администратор' },
+            { id: 2, login: 'buhgal', password: 'buhgal123', role: 'Бухгалтер' },
+            { id: 3, login: 'manager', password: 'manager123', role: 'Руководитель' },
+            { id: 4, login: 'sotrud', password: 'sotrud123', role: 'Сотрудник' }
+        ],
+        employees: [],
+        payroll: [],
+        positions: ['Преподаватель'],
+        nextEmpId: 1,
+        nextPayrollId: 1,
+        nextUserId: 5
+    };
+
+    let currentUser = null;
+    let currentEmployeeId = null;
+
+    function loginUser() {
+        const login = document.getElementById('loginInput').value.trim();
+        const pass = document.getElementById('passInput').value.trim();
+        const user = DB.users.find(u => u.login === login && u.password === pass);
+        if (user) {
+            currentUser = user;
+            document.getElementById('authOverlay').classList.add('hidden');
+            document.getElementById('userName').textContent = user.login;
+            document.getElementById('userRole').textContent = user.role;
+            document.getElementById('authError').classList.remove('show');
+            if (user.role === 'Сотрудник') {
+                const emp = DB.employees.find(e => e.userId === user.id);
+                if (emp) {
+                    currentEmployeeId = emp.id;
+                    document.getElementById('myName').textContent = emp.name;
+                    document.getElementById('myPosition').textContent = emp.position;
+                    document.getElementById('myRate').textContent = emp.rate;
+                }
+            }
+            updateTabsByRole(user.role);
+            loadEmployees();
+            loadEmployeeSelects();
+            loadReports();
+            loadManagerReport();
+            loadMyPayroll();
+        } else {
+            document.getElementById('authError').classList.add('show');
+        }
+    }
+
+    function logoutUser() {
+        currentUser = null;
+        currentEmployeeId = null;
+        document.getElementById('authOverlay').classList.remove('hidden');
+        document.getElementById('loginInput').value = '';
+        document.getElementById('passInput').value = '';
+        document.getElementById('authError').classList.remove('show');
+    }
+
+    function updateTabsByRole(role) {
+        const tabs = document.querySelectorAll('.tab-btn');
+        const roleMap = {
+            'Администратор': ['employees', 'salary', 'reports', 'users', 'positions', 'employee', 'manager'],
+            'Бухгалтер': ['employees', 'salary', 'reports'],
+            'Руководитель': ['employees', 'reports', 'manager'],
+            'Сотрудник': ['employee']
+        };
+        const allowed = roleMap[role] || ['employee'];
+        tabs.forEach(tab => {
+            const page = tab.dataset.page;
+            tab.style.display = allowed.includes(page) ? 'inline-block' : 'none';
+        });
+        const firstAllowed = allowed[0] || 'employees';
+        switchTab(firstAllowed);
+    }
+
+    function switchTab(pageId) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        const btn = document.querySelector(`.tab-btn[data-page="${pageId}"]`);
+        if (btn) btn.classList.add('active');
+        const page = document.getElementById('page-' + pageId);
+        if (page) page.classList.add('active');
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (!currentUser) return;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + this.dataset.page).classList.add('active');
+        });
+    });
+
+    function loadEmployees() {
+        const tbody = document.getElementById('employeesTableBody');
+        tbody.innerHTML = '';
+        DB.employees.forEach(e => {
+            tbody.innerHTML += `<tr><td>${e.id}</td><td>${e.name}</td><td>${e.position}</td><td>${e.rate}</td><td><button class="btn btn-danger" onclick="deleteEmp(${e.id})">Удалить</button></td></tr>`;
+        });
+        loadEmployeeSelects();
+    }
+
+    function loadEmployeeSelects() {
+        const selects = ['salaryEmp', 'reportEmpFilter', 'managerEmpFilter'];
+        selects.forEach(id => {
+            const sel = document.getElementById(id);
+            if (!sel) return;
+            const val = sel.value;
+            sel.innerHTML = id === 'reportEmpFilter' || id === 'managerEmpFilter' ? '<option value="all">Все</option>' : '';
+            DB.employees.forEach(e => {
+                sel.innerHTML += `<option value="${e.id}">${e.name}</option>`;
+            });
+            if (val) sel.value = val;
+        });
+    }
+
+    function addEmployee() {
+        const name = document.getElementById('empName').value.trim();
+        const position = document.getElementById('empPosition').value;
+        const rate = document.getElementById('empRate').value;
+        if (!name || !rate) { alert('Заполните все поля'); return; }
+        DB.employees.push({ id: DB.nextEmpId++, name, position, rate: Number(rate) });
+        loadEmployees();
+        alert('Сотрудник добавлен');
+    }
+
+    function deleteEmp(id) {
+        if (!confirm('Удалить сотрудника?')) return;
+        DB.employees = DB.employees.filter(e => e.id !== id);
+        DB.payroll = DB.payroll.filter(p => p.employeeId !== id);
+        loadEmployees();
+        loadReports();
+        loadManagerReport();
+        if (currentEmployeeId === id) {
+            currentEmployeeId = null;
+            document.getElementById('myName').textContent = '—';
+            document.getElementById('myPosition').textContent = '—';
+            document.getElementById('myRate').textContent = '—';
+        }
+    }
+
+    function calcSalary() {
+        const empId = Number(document.getElementById('salaryEmp').value);
+        const days = Number(document.getElementById('salaryDays').value) || 0;
+        const bonus = Number(document.getElementById('salaryBonus').value) || 0;
+        const emp = DB.employees.find(e => e.id === empId);
+        if (!emp) { alert('Выберите сотрудника'); return; }
+        const taxRate = 0.13;
+        const workDays = 22;
+        const base = (emp.rate / workDays) * days;
+        const totalBeforeTax = base + bonus;
+        const tax = totalBeforeTax * taxRate;
+        const net = totalBeforeTax - tax;
+        const box = document.getElementById('salaryResult');
+        box.innerHTML = `
+            <p><strong>Начислено (до налога):</strong> ${totalBeforeTax.toFixed(2)} руб.</p>
+            <p><strong>Налог 13%:</strong> ${tax.toFixed(2)} руб.</p>
+            <p class="total">К выплате: ${net.toFixed(2)} руб.</p>
+        `;
+        window._lastSalary = { empId, days, bonus, totalBeforeTax, tax, net };
+    }
+
+    function saveSalary() {
+        const data = window._lastSalary;
+        if (!data) { alert('Сначала выполните расчёт'); return; }
+        const emp = DB.employees.find(e => e.id === data.empId);
+        if (!emp) { alert('Сотрудник не найден'); return; }
+        DB.payroll.push({
+            id: DB.nextPayrollId++,
+            employeeId: data.empId,
+            employeeName: emp.name,
+            position: emp.position,
+            days: data.days,
+            bonus: data.bonus,
+            tax: data.tax,
+            total: data.net,
+            date: new Date().toLocaleDateString('ru-RU')
+        });
+        loadReports();
+        loadManagerReport();
+        if (currentEmployeeId === data.empId) loadMyPayroll();
+        alert('Начисление сохранено');
+    }
+
+    function loadReports() {
+        const tbody = document.getElementById('reportsTableBody');
+        tbody.innerHTML = '';
+        const filter = document.getElementById('reportEmpFilter')?.value || 'all';
+        const list = filter === 'all' ? DB.payroll : DB.payroll.filter(p => p.employeeId === Number(filter));
+        list.forEach(p => {
+            tbody.innerHTML += `<tr><td>${p.employeeName}</td><td>${p.position}</td><td>${p.days}</td><td>${p.bonus}</td><td>${p.tax.toFixed(2)}</td><td>${p.total.toFixed(2)}</td></tr>`;
+        });
+    }
+
+    function loadManagerReport() {
+        const tbody = document.getElementById('managerTableBody');
+        tbody.innerHTML = '';
+        const filter = document.getElementById('managerEmpFilter')?.value || 'all';
+        const list = filter === 'all' ? DB.payroll : DB.payroll.filter(p => p.employeeId === Number(filter));
+        list.forEach(p => {
+            tbody.innerHTML += `<tr><td>${p.employeeName}</td><td>${p.position}</td><td>${p.days}</td><td>${p.bonus}</td><td>${p.tax.toFixed(2)}</td><td>${p.total.toFixed(2)}</td></tr>`;
+        });
+    }
+
+    function loadMyPayroll() {
+        const tbody = document.getElementById('myPayrollBody');
+        tbody.innerHTML = '';
+        if (!currentEmployeeId) return;
+        const list = DB.payroll.filter(p => p.employeeId === currentEmployeeId);
+        list.forEach(p => {
+            tbody.innerHTML += `<tr><td>${p.date}</td><td>${p.days}</td><td>${p.bonus}</td><td>${p.tax.toFixed(2)}</td><td>${p.total.toFixed(2)}</td></tr>`;
+        });
+    }
+
+    function addUser() {
+        const login = document.getElementById('userLogin').value.trim();
+        const pass = document.getElementById('userPass').value.trim();
+        const role = document.getElementById('userRoleSelect').value;
+        if (!login || !pass) { alert('Заполните все поля'); return; }
+        if (DB.users.find(u => u.login === login)) { alert('Логин уже существует'); return; }
+        const newUser = { id: DB.nextUserId++, login, password: pass, role };
+        DB.users.push(newUser);
+        const tbody = document.getElementById('usersTableBody');
+        tbody.innerHTML += `<tr><td>${newUser.id}</td><td>${login}</td><td>${role}</td><td><button class="btn btn-danger" onclick="deleteUser(this)">Удалить</button></td></tr>`;
+        alert('Пользователь добавлен');
+    }
+
+    function deleteUser(btn) {
+        if (!confirm('Удалить пользователя?')) return;
+        const row = btn.closest('tr');
+        const login = row.cells[1].textContent;
+        DB.users = DB.users.filter(u => u.login !== login);
+        row.remove();
+    }
+
+    function addPosition() {
+        const name = document.getElementById('posName').value.trim();
+        if (!name) { alert('Введите название'); return; }
+        DB.positions.push(name);
+        const tbody = document.getElementById('positionsTableBody');
+        const newId = tbody.children.length + 1;
+        tbody.innerHTML += `<tr><td>${newId}</td><td>${name}</td><td><button class="btn btn-danger" onclick="deletePos(this)">Удалить</button></td></tr>`;
+        alert('Должность добавлена');
+        document.getElementById('posName').value = '';
+    }
+
+    function deletePos(btn) {
+        if (!confirm('Удалить должность?')) return;
+        const row = btn.closest('tr');
+        const name = row.cells[1].textContent;
+        DB.positions = DB.positions.filter(p => p !== name);
+        row.remove();
+    }
+
+
+</script>
 </body>
 </html>
