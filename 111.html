@@ -1,0 +1,35 @@
+<!-- Файл: renderer/index.html (страница авторизации) -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Вход в систему</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="login-page">
+  <div class="login-box">
+    <h2>Вход в систему</h2>
+    <p class="sub">Система расчёта заработной платы</p>
+    <input id="login" type="text" placeholder="Логин">
+    <input id="password" type="password" placeholder="Пароль">
+    <button id="btnLogin">Войти</button>
+  </div>
+  <script>
+    const db = require('../database.js');
+    document.getElementById('btnLogin').addEventListener('click', async function() {
+      const login = document.getElementById('login').value;
+      const password = document.getElementById('password').value;
+      if (!login || !password) { alert('Введите логин и пароль'); return; }
+      const user = await db.login(login, password);
+      if (user) {
+        localStorage.setItem('userId', user.id);
+        localStorage.setItem('userLogin', user.login);
+        localStorage.setItem('userRole', user.role);
+        location.href = 'dashboard.html';
+      } else {
+        alert('Неверный логин или пароль');
+      }
+    });
+  </script>
+</body>
+</html>

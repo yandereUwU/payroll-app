@@ -3,23 +3,19 @@ const db = new sqlite3.Database('./data.db');
 const ExcelJS = require('exceljs');
 const { dialog } = require('electron');
 
-// --- СОЗДАНИЕ ТАБЛИЦ (расширенная структура) ---
 db.serialize(() => {
-  // 1. Роли (справочник)
   db.run(`CREATE TABLE IF NOT EXISTS roles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL,
     description TEXT
   )`);
 
-  // Заполняем роли по умолчанию
   db.run(`INSERT OR IGNORE INTO roles (name, description) VALUES
     ('admin', 'Полный доступ'),
     ('accountant', 'Бухгалтер'),
     ('manager', 'Руководитель'),
     ('employee', 'Сотрудник')`);
 
-  // 2. Пользователи
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     login TEXT UNIQUE NOT NULL,
@@ -29,7 +25,6 @@ db.serialize(() => {
     FOREIGN KEY(role_id) REFERENCES roles(id)
   )`);
 
-  // 3. Системные настройки
   db.run(`CREATE TABLE IF NOT EXISTS settings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     key TEXT UNIQUE NOT NULL,
@@ -41,7 +36,6 @@ db.serialize(() => {
     ('tax_rate', '0.13', 'Ставка налога (13%)'),
     ('work_days_per_month', '22', 'Количество рабочих дней в месяце')`);
 
-  // 4. Периоды начисления зарплаты
   db.run(`CREATE TABLE IF NOT EXISTS payroll_periods (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     year INTEGER NOT NULL,
@@ -53,7 +47,6 @@ db.serialize(() => {
     UNIQUE(year, month)
   )`);
 
-  // 5. Сотрудники
   db.run(`CREATE TABLE IF NOT EXISTS employees (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     full_name TEXT UNIQUE NOT NULL,
